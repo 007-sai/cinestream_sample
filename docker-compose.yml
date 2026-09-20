@@ -1,0 +1,24 @@
+version: "3.9"
+
+services:
+  cinestream:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cinestream:debian
+    container_name: cinestream-app
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:80/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - cinestream-net
+
+networks:
+  cinestream-net:
+    driver: bridge

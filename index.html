@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎬 CineStream · Free Movies</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:#0a0d16;color:#fff;min-height:100vh;padding:1.5rem;display:flex;flex-direction:column;align-items:center}
+.app{max-width:1400px;width:100%}
+header{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:2rem;flex-wrap:wrap;background:rgba(10,13,22,.85);padding:.8rem 1.2rem;border-radius:60px;border:1px solid rgba(255,255,255,.06);backdrop-filter:blur(14px)}
+.logo{display:flex;align-items:center;gap:10px;font-size:1.5rem;font-weight:800;background:linear-gradient(135deg,#f5d78b,#e8b04b);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo i{font-size:1.8rem;background:linear-gradient(135deg,#f5d78b,#e8b04b);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.search{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:60px;padding:.55rem 1.1rem;display:flex;align-items:center;gap:10px;flex:1;max-width:420px}
+.search i{color:#b3b9cb}
+.search input{background:transparent;border:none;outline:none;color:#fff;font-family:inherit;font-size:.95rem;width:100%}
+.search input::placeholder{color:#7b839a}
+.search:focus-within{border-color:#e8b04b;box-shadow:0 0 0 3px rgba(232,176,75,.15)}
+
+/* Player */
+.player{display:none;margin-bottom:2rem;border-radius:20px;overflow:hidden;background:#000;aspect-ratio:16/9;position:relative;box-shadow:0 25px 50px -12px rgba(0,0,0,.9)}
+.player.active{display:block}
+.player-info{position:absolute;top:0;left:0;right:0;padding:1rem 1.5rem;background:linear-gradient(to bottom,rgba(0,0,0,.9),transparent);display:flex;justify-content:space-between;align-items:center;z-index:10;opacity:0;transition:opacity .3s}
+.player:hover .player-info{opacity:1}
+.player-info h3{font-size:1rem;font-weight:600}
+.close-btn{background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.2);color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:1rem;transition:all .2s}
+.close-btn:hover{background:#e8b04b;color:#000}
+#mainVideo{width:100%;height:100%;object-fit:contain;background:#000;display:block}
+
+/* Video error overlay */
+.video-error{position:absolute;inset:0;background:#0a0d16;display:none;flex-direction:column;align-items:center;justify-content:center;gap:1rem;padding:2rem;text-align:center;z-index:20}
+.video-error.show{display:flex}
+.video-error i{font-size:3rem;color:#e8b04b}
+.video-error h3{font-weight:600;font-size:1.2rem}
+.video-error p{color:#9aa3bb;max-width:500px;line-height:1.5;font-size:.9rem}
+.video-error button{background:linear-gradient(135deg,#f5d78b,#e8b04b);color:#0a0d16;border:none;padding:.7rem 1.5rem;border-radius:50px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.9rem}
+
+/* Test bar */
+.test-bar{background:rgba(232,176,75,.1);border:1px solid rgba(232,176,75,.3);border-radius:14px;padding:1rem 1.2rem;margin-bottom:2rem;display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
+.test-bar p{font-size:.85rem;color:#c8cee0}
+.test-bar button{background:linear-gradient(135deg,#f5d78b,#e8b04b);color:#0a0d16;border:none;padding:.6rem 1.3rem;border-radius:50px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.85rem;display:flex;align-items:center;gap:.5rem;transition:transform .2s}
+.test-bar button:hover{transform:translateY(-2px)}
+
+/* Sections */
+.section{margin-bottom:2.5rem}
+.section-head{display:flex;align-items:center;gap:10px;margin-bottom:1.2rem;font-size:1.3rem;font-weight:700}
+.section-head i{color:#e8b04b}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:1.2rem}
+.card{background:rgba(255,255,255,.03);border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.05);cursor:pointer;transition:transform .25s,border-color .2s,box-shadow .3s;display:flex;flex-direction:column}
+.card:hover{transform:translateY(-6px);border-color:rgba(232,176,75,.5);box-shadow:0 20px 30px -12px rgba(0,0,0,.9)}
+.poster{aspect-ratio:2/3;background:linear-gradient(145deg,#1b2337,#0f1422);position:relative;overflow:hidden}
+.poster img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s}
+.card:hover .poster img{transform:scale(1.06)}
+.poster-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:2.5rem;color:#e8b04b;opacity:.5}
+.card-info{padding:.8rem .9rem 1rem}
+.card-title{font-weight:600;font-size:.9rem;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:.4rem}
+.card-meta{font-size:.75rem;color:#8d96af;display:flex;justify-content:space-between}
+.card-meta .year{color:#e8b04b;font-weight:600}
+
+/* Skeleton */
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+.skel{background:linear-gradient(90deg,#131a2c 0%,#1b2337 50%,#131a2c 100%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:14px}
+.skel-card{aspect-ratio:2/3}
+.skel-line{height:.7rem;border-radius:4px;margin:.5rem 0}
+
+/* Empty / loader */
+.empty{grid-column:1/-1;text-align:center;padding:3rem 1rem;color:#7b839a}
+.empty i{font-size:2.5rem;color:#e8b04b;opacity:.5;margin-bottom:1rem;display:block}
+.empty h3{color:#fff;font-size:1.1rem;margin-bottom:.5rem}
+.loader{display:flex;justify-content:center;padding:3rem;grid-column:1/-1}
+.loader::after{content:'';width:36px;height:36px;border:3px solid rgba(232,176,75,.2);border-top-color:#e8b04b;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+footer{margin-top:3rem;text-align:center;color:#5c6580;font-size:.8rem;line-height:1.6}
+footer a{color:#e8b04b;text-decoration:none}
+
+@media(max-width:640px){
+body{padding:1rem}
+.logo{font-size:1.2rem}
+.grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:.9rem}
+.section-head{font-size:1.1rem}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<header>
+<div class="logo"><i class="fas fa-film"></i><span>CineStream</span></div>
+<div class="search">
+<i class="fas fa-search"></i>
+<input type="text" id="searchInput" placeholder="Search free movies...">
+</div>
+</header>
+
+<!-- ========== TEST BAR (proves playback works) ========== -->
+<div class="test-bar">
+<p><i class="fas fa-flask"></i> <strong>Playback test:</strong> Click to verify your browser can play videos</p>
+<button id="testBtn"><i class="fas fa-play"></i> Test Video</button>
+</div>
+
+<!-- ========== PLAYER ========== -->
+<div class="player" id="player">
+<div class="player-info">
+<h3 id="playerTitle">Now Playing</h3>
+<button class="close-btn" id="closePlayer"><i class="fas fa-times"></i></button>
+</div>
+<video id="mainVideo" controls preload="metadata" playsinline></video>
+<div class="video-error" id="videoError">
+<i class="fas fa-exclamation-triangle"></i>
+<h3>Playback Failed</h3>
+<p id="errorMsg">This movie could not be loaded. Please try another.</p>
+<button onclick="document.getElementById('player').classList.remove('active');document.getElementById('mainVideo').pause();">Close</button>
+</div>
+</div>
+
+<!-- ========== POPULAR ========== -->
+<section class="section">
+<h2 class="section-head"><i class="fas fa-fire"></i> Popular Movies</h2>
+<div class="grid" id="popularGrid"></div>
+</section>
+
+<!-- ========== CLASSICS ========== -->
+<section class="section">
+<h2 class="section-head"><i class="fas fa-star"></i> Classic Films</h2>
+<div class="grid" id="classicsGrid"></div>
+</section>
+
+<!-- ========== SEARCH RESULTS ========== -->
+<section class="section" id="searchSection" style="display:none">
+<h2 class="section-head"><i class="fas fa-search"></i> Search Results</h2>
+<div class="grid" id="searchGrid"></div>
+</section>
+
+<footer>
+<p>🎬 CineStream — powered by the <a href="https://archive.org" target="_blank" rel="noopener">Internet Archive</a></p>
+<p style="margin-top:.4rem">All movies are free, legal, and in the public domain.</p>
+</footer>
+
+</div>
+
+<script>
+(function(){
+'use strict';
+
+const IA_SEARCH = 'https://archive.org/advancedsearch.php';
+const IA_METADATA = 'https://archive.org/metadata';
+const IA_THUMB = 'https://archive.org/services/img';
+const IA_DOWNLOAD = 'https://archive.org/download';
+
+const $ = id => document.getElementById(id);
+const searchInput = $('searchInput');
+const player = $('player');
+const mainVideo = $('mainVideo');
+const playerTitle = $('playerTitle');
+const closePlayer = $('closePlayer');
+const videoError = $('videoError');
+const errorMsg = $('errorMsg');
+const popularGrid = $('popularGrid');
+const classicsGrid = $('classicsGrid');
+const searchSection = $('searchSection');
+const searchGrid = $('searchGrid');
+const testBtn = $('testBtn');
+
+// ============================================================
+// UTILITIES
+// ============================================================
+function esc(s){
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function cleanTitle(t){
+  if(!t) return 'Untitled';
+  return t.replace(/\(.*?\)/g,'').replace(/\[.*?\]/g,'').replace(/[_.]+/g,' ').replace(/\s+/g,' ').trim() || 'Untitled';
+}
+function pickYear(item){
+  const y = item.year || item.date || item.publicdate;
+  const m = y ? String(y).match(/(\d{4})/) : null;
+  return m ? m[1] : '';
+}
+function truncate(s, n){
+  s = String(s || '').trim();
+  return s.length > n ? s.slice(0, n-1).trim() + '…' : s;
+}
+
+// ============================================================
+// API: Search archive.org
+// ============================================================
+async function searchArchive(query, rows = 18){
+  const params = new URLSearchParams();
+  params.append('q', query);
+  params.append('fl[]', 'identifier');
+  params.append('fl[]', 'title');
+  params.append('fl[]', 'year');
+  params.append('fl[]', 'description');
+  params.append('rows', rows);
+  params.append('page', 1);
+  params.append('output', 'json');
+  params.append('sort[]', 'downloads desc');
+
+  const res = await fetch(`${IA_SEARCH}?${params}`);
+  if(!res.ok) throw new Error(`Search failed: ${res.status}`);
+  const data = await res.json();
+  return (data?.response?.docs || []).filter(d => d.identifier && d.title);
+}
+
+// ============================================================
+// API: Find playable MP4 for an item
+// Strategy: use the reliable /download/{id}/format=mp4 redirect
+//           If that fails, list files via metadata and pick an MP4
+// ============================================================
+async function getVideoUrl(identifier){
+  // Method 1: archive.org has a built-in "format=mp4" redirect that returns the
+  // first MP4 derivative — this is the most reliable approach.
+  const directUrl = `${IA_DOWNLOAD}/${identifier}/format=mp4`;
+
+  // Verify it actually resolves to a real video by doing a HEAD request
+  try{
+    const head = await fetch(directUrl, { method: 'HEAD' });
+    if(head.ok && /video|octet-stream/i.test(head.headers.get('content-type') || '')){
+      return directUrl;
+    }
+  }catch(e){ /* fall through to Method 2 */ }
+
+  // Method 2: query metadata and find the biggest MP4 file
+  const res = await fetch(`${IA_METADATA}/${identifier}`);
+  if(!res.ok) throw new Error('Metadata not available');
+  const data = await res.json();
+  const files = (data?.files || []).filter(f => f.name);
+
+  // Rank candidates: prefer .mp4 > .webm > .ogv, and larger files
+  const rank = f => {
+    const n = f.name.toLowerCase();
+    if(n.endsWith('.mp4')) return 3;
+    if(n.endsWith('.webm')) return 2;
+    if(n.endsWith('.ogv') || n.endsWith('.ogg')) return 1;
+    return 0;
+  };
+  const candidates = files
+    .filter(f => rank(f) > 0)
+    .sort((a,b) => rank(b) - rank(a) || (parseInt(b.size)||0) - (parseInt(a.size)||0));
+
+  if(!candidates.length) throw new Error('No playable video file found for this item.');
+
+  const best = candidates[0];
+  return `${IA_DOWNLOAD}/${identifier}/${encodeURIComponent(best.name)}`;
+}
+
+// ============================================================
+// PLAYER
+// ============================================================
+let hlsLoader = null; // for future HLS support
+
+async function playMovie(identifier, title){
+  playerTitle.textContent = title || 'Loading…';
+  player.classList.add('active');
+  videoError.classList.remove('show');
+  player.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  // Reset video
+  mainVideo.pause();
+  mainVideo.removeAttribute('src');
+  mainVideo.load();
+
+  try{
+    const url = await getVideoUrl(identifier);
+    console.log('[CineStream] Playing:', url);
+    mainVideo.src = url;
+    mainVideo.load();
+
+    // Try to play
+    try{
+      await mainVideo.play();
+    }catch(playErr){
+      // Autoplay might be blocked; user can press play manually. Not fatal.
+      console.warn('[CineStream] Autoplay blocked:', playErr.message);
+    }
+  }catch(err){
+    console.error('[CineStream] Play error:', err);
+    showError(err.message || 'Could not load this movie.');
+  }
+}
+
+function showError(msg){
+  errorMsg.textContent = msg;
+  videoError.classList.add('show');
+}
+
+closePlayer.addEventListener('click', () => {
+  mainVideo.pause();
+  mainVideo.removeAttribute('src');
+  mainVideo.load();
+  player.classList.remove('active');
+  videoError.classList.remove('show');
+});
+
+mainVideo.addEventListener('error', () => {
+  const err = mainVideo.error;
+  let msg = 'Video failed to load.';
+  if(err){
+    switch(err.code){
+      case 1: msg = 'Playback aborted.'; break;
+      case 2: msg = 'Network error while loading the video.'; break;
+      case 3: msg = 'Video decoding failed — this file format may not be supported.'; break;
+      case 4: msg = 'Video format not supported, or file not found.'; break;
+    }
+  }
+  showError(msg);
+});
+
+// ============================================================
+// RENDER CARDS
+// ============================================================
+function renderCards(grid, items){
+  if(!items.length){
+    grid.innerHTML = `<div class="empty"><i class="fas fa-film"></i><h3>No movies found</h3></div>`;
+    return;
+  }
+  grid.innerHTML = items.map(item => {
+    const title = cleanTitle(item.title);
+    const year = pickYear(item);
+    return `
+      <div class="card" data-id="${esc(item.identifier)}" data-title="${esc(title)}">
+        <div class="poster">
+          <img src="${IA_THUMB}/${esc(item.identifier)}" alt="${esc(title)}" loading="lazy"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <div class="poster-fallback" style="display:none"><i class="fas fa-film"></i></div>
+        </div>
+        <div class="card-info">
+          <div class="card-title">${esc(title)}</div>
+          <div class="card-meta"><span class="year">${year || 'Movie'}</span><span>▶</span></div>
+        </div>
+      </div>`;
+  }).join('');
+
+  grid.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('click', () => {
+      playMovie(card.dataset.id, card.dataset.title);
+    });
+  });
+}
+
+function renderSkeletons(grid, count = 8){
+  grid.innerHTML = Array.from({length: count}).map(() => `
+    <div class="skel skel-card"></div>
+  `).join('');
+}
+
+// ============================================================
+// LOAD SECTIONS
+// ============================================================
+async function loadPopular(){
+  renderSkeletons(popularGrid, 12);
+  try{
+    const items = await searchArchive('collection:(feature_films) AND mediatype:movies', 18);
+    renderCards(popularGrid, items);
+  }catch(e){
+    console.error(e);
+    popularGrid.innerHTML = `<div class="empty"><i class="fas fa-exclamation-triangle"></i><h3>Couldn't load movies</h3><p style="color:#7b839a;margin-top:.5rem;font-size:.85rem">${esc(e.message)}</p></div>`;
+  }
+}
+
+async function loadClassics(){
+  renderSkeletons(classicsGrid, 12);
+  try{
+    const items = await searchArchive('collection:(classic_cartoons) AND mediatype:movies', 18);
+    renderCards(classicsGrid, items);
+  }catch(e){
+    console.error(e);
+    classicsGrid.innerHTML = `<div class="empty"><i class="fas fa-exclamation-triangle"></i><h3>Couldn't load classics</h3></div>`;
+  }
+}
+
+// ============================================================
+// SEARCH
+// ============================================================
+let searchTimer = null;
+searchInput.addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  const q = searchInput.value.trim();
+  if(!q){
+    searchSection.style.display = 'none';
+    document.querySelectorAll('.section:not(#searchSection)').forEach(s => s.style.display = '');
+    return;
+  }
+  searchTimer = setTimeout(() => doSearch(q), 400);
+});
+
+async function doSearch(q){
+  document.querySelectorAll('.section:not(#searchSection)').forEach(s => s.style.display = 'none');
+  searchSection.style.display = '';
+  renderSkeletons(searchGrid, 12);
+  try{
+    const items = await searchArchive(`(${q}) AND mediatype:movies AND collection:(feature_films OR classic_cartoons OR SciFi_Horror OR film_noir OR moviesandfilms)`, 24);
+    renderCards(searchGrid, items);
+  }catch(e){
+    searchGrid.innerHTML = `<div class="empty"><i class="fas fa-exclamation-triangle"></i><h3>Search failed</h3><p style="font-size:.85rem;margin-top:.5rem">${esc(e.message)}</p></div>`;
+  }
+}
+
+// ============================================================
+// TEST VIDEO — uses a rock-solid public MP4 to prove playback works
+// ============================================================
+testBtn.addEventListener('click', async () => {
+  playerTitle.textContent = 'Test Video (Big Buck Bunny)';
+  player.classList.add('active');
+  videoError.classList.remove('show');
+  player.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  // Two well-known, always-available test MP4s.
+  const sources = [
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_1MB.mp4',
+    'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'
+  ];
+
+  for(const src of sources){
+    try{
+      const head = await fetch(src, { method: 'HEAD', mode: 'cors' });
+      if(head.ok){
+        mainVideo.src = src;
+        mainVideo.load();
+        await mainVideo.play().catch(()=>{});
+        return;
+      }
+    }catch(e){ /* try next */ }
+  }
+  // If HEAD fails on all, just try the first one directly
+  mainVideo.src = sources[0];
+  mainVideo.load();
+  mainVideo.play().catch(()=>{});
+});
+
+// ============================================================
+// INIT
+// ============================================================
+loadPopular();
+loadClassics();
+
+console.log('%c🎬 CineStream ready','color:#e8b04b;font-weight:bold;font-size:14px');
+console.log('Tip: If a movie fails to play, try another — some older items only have OGV/AVI files.');
+})();
+</script>
+</body>
+</html>
